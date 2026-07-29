@@ -3,7 +3,7 @@ import { useState } from 'react'
 // Your WhatsApp number with country code, no + or spaces
 // Example Kenya: '254712345678'
 // Example US: '15551234567'
-const WHATSAPP_NUMBER = '256894974564' // ← CHANGE THIS TO YOUR NUMBER
+const WHATSAPP_NUMBER = '0894974564' // ← CHANGE THIS TO YOUR NUMBER
 
 export default function ReplyScreen({ name }) {
   const [message, setMessage] = useState('')
