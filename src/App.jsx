@@ -16,30 +16,49 @@ const SCREENS = {
   GALLERY: 'gallery',
   REPLY: 'reply',
 }
+const PLAYLIST = [
+  '/music1.mp3',
+  '/music2.mp3',
+  '/music3.mp3',
+]
 
 function App() {
   const [screen, setScreen] = useState(SCREENS.CODE)
   const [name, setName] = useState('')
   const [musicPlaying, setMusicPlaying] = useState(false)
-  const audioRef = useRef(null)
+const audioRef = useRef(null)
+const currentTrackRef = useRef(0)
 
   useEffect(() => {
-    audioRef.current = new Audio('/music.mp3')
-    audioRef.current.loop = true
-    audioRef.current.volume = 0.4
+    const audio = new Audio(PLAYLIST[0])
+
+    audio.volume = 0.4
+
+    audio.addEventListener('ended', () => {
+      currentTrackRef.current =
+        (currentTrackRef.current + 1) % PLAYLIST.length
+
+      audio.src = PLAYLIST[currentTrackRef.current]
+      audio.load()
+      audio.play().catch(() => {})
+    })
+
+    audioRef.current = audio
+
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
-      }
+      audio.pause()
+      audio.src = ''
+      audioRef.current = null
     }
   }, [])
 
   const playMusic = useCallback(() => {
-    if (audioRef.current && !musicPlaying) {
-      audioRef.current.play().catch(() => {})
-      setMusicPlaying(true)
-    }
+    if (!audioRef.current || musicPlaying) return
+
+    audioRef.current
+      .play()
+      .then(() => setMusicPlaying(true))
+      .catch(() => {})
   }, [musicPlaying])
 
   const fireConfetti = useCallback(() => {
