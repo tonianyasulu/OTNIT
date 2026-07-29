@@ -597,3 +597,7 @@ button:active {
     padding-bottom: max(3rem, calc(2rem + env(safe-area-inset-bottom)));
   }
 }
+/* Secret code wrong answer shake */
+.card-shake {
+  animation: shake 0.4s ease;
+}

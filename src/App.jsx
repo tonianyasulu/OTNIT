@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import confetti from 'canvas-confetti'
 import FloatingHearts from './components/FloatingHearts'
+import CodeScreen from './components/CodeScreen'
 import WelcomeScreen from './components/WelcomeScreen'
 import QuestionScreen from './components/QuestionScreen'
 import MessageScreen from './components/MessageScreen'
 import GalleryScreen from './components/GalleryScreen'
 
 const SCREENS = {
+  CODE: 'code',
   WELCOME: 'welcome',
   QUESTION: 'question',
   MESSAGE: 'message',
@@ -14,7 +16,7 @@ const SCREENS = {
 }
 
 function App() {
-  const [screen, setScreen] = useState(SCREENS.WELCOME)
+  const [screen, setScreen] = useState(SCREENS.CODE)
   const [name, setName] = useState('')
   const [musicPlaying, setMusicPlaying] = useState(false)
   const audioRef = useRef(null)
@@ -69,6 +71,8 @@ function App() {
     })
   }, [])
 
+  const handleUnlock = () => setScreen(SCREENS.WELCOME)
+
   const handleStart = (enteredName) => {
     setName(enteredName.trim() || 'beautiful')
     setScreen(SCREENS.QUESTION)
@@ -88,6 +92,7 @@ function App() {
   return (
     <>
       <FloatingHearts />
+      {screen === SCREENS.CODE && <CodeScreen onUnlock={handleUnlock} />}
       {screen === SCREENS.WELCOME && <WelcomeScreen onStart={handleStart} />}
       {screen === SCREENS.QUESTION && <QuestionScreen onYes={handleYes} />}
       {screen === SCREENS.MESSAGE && (
