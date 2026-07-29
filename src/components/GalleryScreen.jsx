@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import confetti from 'canvas-confetti'
 
-// Put your photos in public/photos/ then update paths below.
-// Example: public/photos/1.jpg → src: '/photos/1.jpg'
+// Put your photos in public/photos/
 const PHOTOS = [
   { id: 1, src: '/photos/li_thz.jpg', label: 'That Trip Was great' },
   { id: 2, src: '/photos/li_vCall.png', label: 'Calls together' },
@@ -12,24 +11,27 @@ const PHOTOS = [
   { id: 6, src: '/photos/lil_thz_2.jpg', label: 'Just because' },
 ]
 
+const SLIDE_SECONDS = 5 // how long each photo shows
+
 export default function GalleryScreen({ name }) {
-  const [selected, setSelected] = useState(null)
+  const [index, setIndex] = useState(0)
   const [imgErrors, setImgErrors] = useState({})
+  const [fading, setFading] = useState(false)
+  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
-    const duration = 4000
+    const duration = 3500
     const end = Date.now() + duration
-
     const frame = () => {
       confetti({
-        particleCount: 4,
+        particleCount: 3,
         angle: 60,
         spread: 70,
         origin: { x: 0, y: 0.7 },
         colors: ['#ff6b9d', '#c77dff', '#ffd700', '#ffffff'],
       })
       confetti({
-        particleCount: 4,
+        particleCount: 3,
         angle: 120,
         spread: 70,
         origin: { x: 1, y: 0.7 },
@@ -38,92 +40,116 @@ export default function GalleryScreen({ name }) {
       if (Date.now() < end) requestAnimationFrame(frame)
     }
     frame()
-
     confetti({
-      particleCount: 150,
-      spread: 120,
+      particleCount: 120,
+      spread: 100,
       origin: { y: 0.55 },
       colors: ['#ff6b9d', '#c77dff', '#ffd700', '#4ade80', '#fb7185', '#ffffff'],
     })
   }, [])
+
+  const goTo = useCallback((nextIndex) => {
+    setFading(true)
+    setTimeout(() => {
+      setIndex((nextIndex + PHOTOS.length) % PHOTOS.length)
+      setFading(false)
+    }, 350)
+  }, [])
+
+  useEffect(() => {
+    if (paused) return
+    const timer = setInterval(() => {
+      goTo(index + 1)
+    }, SLIDE_SECONDS * 1000)
+    return () => clearInterval(timer)
+  }, [index, paused, goTo])
+
+  const photo = PHOTOS[index]
+  const hasError = imgErrors[photo.id]
 
   const handleImgError = (id) => {
     setImgErrors((prev) => ({ ...prev, [id]: true }))
   }
 
   return (
-    <div className="screen gallery-screen">
+    <div className="screen gallery-screen slideshow-screen">
       <h1 className="gallery-title">Our Memories 💕</h1>
       <p className="gallery-subtitle">
-        {name ? `Every moment with you, ${name}, is a treasure` : 'Every moment with you is a treasure'}
+        {name
+          ? `Every moment with you, ${name}, is a treasure`
+          : 'Every moment with you is a treasure'}
       </p>
 
-      <div className="gallery-grid">
-        {PHOTOS.map((photo, i) => (
-          <button
+      <div
+        className={`slideshow ${fading ? 'slideshow-fading' : ''}`}
+        onClick={() => setPaused((p) => !p)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowRight') goTo(index + 1)
+          if (e.key === 'ArrowLeft') goTo(index - 1)
+          if (e.key === ' ') {
+            e.preventDefault()
+            setPaused((p) => !p)
+          }
+        }}
+      >
+        {!hasError ? (
+          <img
             key={photo.id}
+            src={photo.src}
+            alt={photo.label}
+            className="slideshow-img"
+            onError={() => handleImgError(photo.id)}
+          />
+        ) : (
+          <div className="slideshow-fallback">
+            <span>{photo.emoji}</span>
+          </div>
+        )}
+
+        <div className="slideshow-caption">{photo.label}</div>
+
+        <div className="slideshow-progress-track">
+          <div
+            key={`${photo.id}-${paused}`}
+            className={`slideshow-progress-bar ${paused ? 'paused' : ''}`}
+            style={{ animationDuration: `${SLIDE_SECONDS}s` }}
+          />
+        </div>
+      </div>
+
+      <div className="slideshow-dots">
+        {PHOTOS.map((p, i) => (
+          <button
+            key={p.id}
             type="button"
-            className="gallery-item"
-            style={{ animationDelay: `${i * 0.12}s` }}
-            onClick={() => setSelected(photo)}
-            title={photo.label}
-          >
-            {!imgErrors[photo.id] ? (
-              <img
-                src={photo.src}
-                alt={photo.label}
-                onError={() => handleImgError(photo.id)}
-                loading="lazy"
-              />
-            ) : (
-              <span className="gallery-placeholder">{photo.emoji}</span>
-            )}
-            <span className="gallery-overlay">
-              <span className="gallery-label">{photo.label}</span>
-            </span>
-          </button>
+            className={`dot ${i === index ? 'dot-active' : ''}`}
+            onClick={() => goTo(i)}
+            aria-label={`Photo ${i + 1}`}
+          />
         ))}
+      </div>
+
+      <div className="slideshow-nav">
+        <button type="button" className="nav-btn" onClick={() => goTo(index - 1)}>
+          ‹
+        </button>
+        <button
+          type="button"
+          className="nav-btn pause-btn"
+          onClick={() => setPaused((p) => !p)}
+        >
+          {paused ? '▶' : '❚❚'}
+        </button>
+        <button type="button" className="nav-btn" onClick={() => goTo(index + 1)}>
+          ›
+        </button>
       </div>
 
       <p className="finale">
         Made with ❤️ just for you{name ? `, ${name}` : ''}.
       </p>
-
-      {selected && (
-        <div
-          className="lightbox"
-          onClick={() => setSelected(null)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="lightbox-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {!imgErrors[selected.id] ? (
-              <img
-                src={selected.src}
-                alt={selected.label}
-                className="lightbox-img"
-                onError={() => handleImgError(selected.id)}
-              />
-            ) : (
-              <div className="lightbox-fallback">
-                <span>{selected.emoji}</span>
-              </div>
-            )}
-            <p className="lightbox-caption">{selected.label}</p>
-            <button
-              type="button"
-              className="lightbox-close"
-              onClick={() => setSelected(null)}
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

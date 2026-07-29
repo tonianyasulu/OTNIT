@@ -601,3 +601,160 @@ button:active {
 .card-shake {
   animation: shake 0.4s ease;
 }
+/* ========== Slideshow gallery ========== */
+.slideshow-screen {
+  justify-content: flex-start;
+  padding-top: 1.5rem;
+}
+
+.slideshow {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 1;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+  background: linear-gradient(135deg, #ffb3c9, #e8b4f0);
+  cursor: pointer;
+  transition: opacity 0.35s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.slideshow-fading {
+  opacity: 0;
+}
+
+.slideshow-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  animation: slideIn 0.45s ease both;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.slideshow-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+}
+
+.slideshow-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2.5rem 1rem 1.1rem;
+  background: linear-gradient(to top, rgba(40, 15, 40, 0.75), transparent);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.slideshow-progress-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.slideshow-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b9d, #c77dff);
+  width: 0%;
+  animation: progressFill linear forwards;
+}
+
+.slideshow-progress-bar.paused {
+  animation-play-state: paused;
+}
+
+@keyframes progressFill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+.slideshow-dots {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1.1rem;
+  flex-wrap: wrap;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(232, 74, 127, 0.3);
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.dot-active {
+  background: var(--pink-dark);
+  transform: scale(1.3);
+}
+
+.slideshow-nav {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.nav-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--pink-dark);
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  border: none;
+  cursor: pointer;
+}
+
+.nav-btn:hover {
+  transform: scale(1.08);
+  background: white;
+}
+
+.pause-btn {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 480px) {
+  .slideshow {
+    max-width: 100%;
+    border-radius: 16px;
+  }
+
+  .slideshow-caption {
+    font-size: 0.85rem;
+    padding: 2rem 0.75rem 0.9rem;
+  }
+}
