@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 💕 Romantic Surprise – React App
 
 A polished little interactive love note with a mischievous "No" button that refuses to be clicked.
@@ -48,3 +49,6 @@ npm run build
 Upload the `dist/` folder to Netlify, Vercel, GitHub Pages, etc.
 
 Made with ❤️ for someone special.
+=======
+# OTNIT
+>>>>>>> e5df0c2a13b595cc77d8b4e5ea4216f2cf12a540
