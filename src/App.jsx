@@ -6,6 +6,7 @@ import WelcomeScreen from './components/WelcomeScreen'
 import QuestionScreen from './components/QuestionScreen'
 import MessageScreen from './components/MessageScreen'
 import GalleryScreen from './components/GalleryScreen'
+import ReplyScreen from './components/ReplyScreen'
 
 const SCREENS = {
   CODE: 'code',
@@ -13,6 +14,7 @@ const SCREENS = {
   QUESTION: 'question',
   MESSAGE: 'message',
   GALLERY: 'gallery',
+  REPLY: 'reply',
 }
 
 function App() {
@@ -43,7 +45,6 @@ function App() {
   const fireConfetti = useCallback(() => {
     const duration = 3500
     const end = Date.now() + duration
-
     const frame = () => {
       confetti({
         particleCount: 3,
@@ -62,7 +63,6 @@ function App() {
       if (Date.now() < end) requestAnimationFrame(frame)
     }
     frame()
-
     confetti({
       particleCount: 120,
       spread: 100,
@@ -89,6 +89,8 @@ function App() {
     setScreen(SCREENS.GALLERY)
   }
 
+  const handleReply = () => setScreen(SCREENS.REPLY)
+
   return (
     <>
       <FloatingHearts />
@@ -98,7 +100,10 @@ function App() {
       {screen === SCREENS.MESSAGE && (
         <MessageScreen name={name} onSurprise={handleSurprise} />
       )}
-      {screen === SCREENS.GALLERY && <GalleryScreen name={name} />}
+      {screen === SCREENS.GALLERY && (
+        <GalleryScreen name={name} onReply={handleReply} />
+      )}
+      {screen === SCREENS.REPLY && <ReplyScreen name={name} />}
     </>
   )
 }

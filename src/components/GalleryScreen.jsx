@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import confetti from 'canvas-confetti'
 
-// Put your photos in public/photos/
 const PHOTOS = [
   { id: 1, src: '/photos/li_thz.jpg', label: 'That Trip Was great' },
   { id: 2, src: '/photos/li_vCall.png', label: 'Calls together' },
@@ -11,9 +10,9 @@ const PHOTOS = [
   { id: 6, src: '/photos/lil_thz_2.jpg', label: 'Just because' },
 ]
 
-const SLIDE_SECONDS = 5 // how long each photo shows
+const SLIDE_SECONDS = 5
 
-export default function GalleryScreen({ name }) {
+export default function GalleryScreen({ name, onReply }) {
   const [index, setIndex] = useState(0)
   const [imgErrors, setImgErrors] = useState({})
   const [fading, setFading] = useState(false)
@@ -146,6 +145,10 @@ export default function GalleryScreen({ name }) {
           ›
         </button>
       </div>
+
+      <button type="button" className="btn btn-surprise reply-cta" onClick={onReply}>
+        💬 Send him a message
+      </button>
 
       <p className="finale">
         Made with ❤️ just for you{name ? `, ${name}` : ''}.
