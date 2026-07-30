@@ -1,22 +1,29 @@
 import { useState } from 'react'
 
-// Change this to whatever secret code you want
-const SECRET_CODE = 'wachabe'
+const ROMANTIC_CODE = 'wachabe'
+const BIRTHDAY_CODE = 'tinto'
 
-export default function CodeScreen({ onUnlock }) {
+export default function CodeScreen({ onRomantic, onBirthday }) {
   const [code, setCode] = useState('')
   const [error, setError] = useState(false)
   const [shaking, setShaking] = useState(false)
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (code.trim().toLowerCase() === SECRET_CODE.toLowerCase()) {
-      onUnlock()
-    } else {
-      setError(true)
-      setShaking(true)
-      setTimeout(() => setShaking(false), 400)
+    const entered = code.trim().toLowerCase()
+
+    if (entered === ROMANTIC_CODE.toLowerCase()) {
+      onRomantic()
+      return
     }
+    if (entered === BIRTHDAY_CODE.toLowerCase()) {
+      onBirthday()
+      return
+    }
+
+    setError(true)
+    setShaking(true)
+    setTimeout(() => setShaking(false), 400)
   }
 
   return (
@@ -40,9 +47,7 @@ export default function CodeScreen({ onUnlock }) {
             autoComplete="off"
             autoFocus
           />
-          {error && (
-            <p className="name-error">Wrong code 😅 Try again</p>
-          )}
+          {error && <p className="name-error">Wrong code 😅 Try again</p>}
           <button type="submit" className="btn btn-yes name-btn">
             Unlock ✨
           </button>
