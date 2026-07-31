@@ -208,10 +208,10 @@ export default function BirthdayUpload({ profile, onDone, onBack }) {
         <div className="welcome-emoji">📸</div>
         <h1 className="title">Add photos for {profile.displayName}</h1>
         <p className="subtitle">
-          These will only show in {profile.displayName}&apos;s album.
+          These will only be stored in {profile.displayName}&apos;s album.
           <br />
           <span style={{ fontSize: '0.85rem', opacity: 0.85 }}>
-            Photos are compressed for faster upload
+            fast photo upload
           </span>
         </p>
 
