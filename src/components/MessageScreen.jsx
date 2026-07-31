@@ -17,7 +17,7 @@ Your smile, your kindness, and the way you make my days better mean more than yo
 
 No matter where life takes us, I hope you always remember that you're special to me.`
 
-export default function MessageScreen({ name, onSurprise }) {
+export default function MessageScreen({ name, onSurprise, onBack }) {
   const greeting = getGreeting()
   const [displayed, setDisplayed] = useState('')
   const [done, setDone] = useState(false)
@@ -67,6 +67,12 @@ export default function MessageScreen({ name, onSurprise }) {
         {showButton && (
           <button className="btn btn-surprise" onClick={onSurprise}>
             🎁 One Last Surprise...
+          </button>
+        )}
+        
+        {onBack && (
+          <button type="button" className="btn btn-back" onClick={onBack}>
+            ← Back
           </button>
         )}
       </div>

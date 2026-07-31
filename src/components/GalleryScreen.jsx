@@ -12,7 +12,7 @@ const PHOTOS = [
 
 const SLIDE_SECONDS = 5
 
-export default function GalleryScreen({ name, onReply }) {
+export default function GalleryScreen({ name, onReply, onBack }) {
   const [index, setIndex] = useState(0)
   const [imgErrors, setImgErrors] = useState({})
   const [fading, setFading] = useState(false)
@@ -153,6 +153,12 @@ export default function GalleryScreen({ name, onReply }) {
       <p className="finale">
         Made with ❤️ just for you{name ? `, ${name}` : ''}.
       </p>
+      
+      {onBack && (
+        <button type="button" className="btn btn-back" onClick={onBack}>
+          ← Back
+        </button>
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function WelcomeScreen({ onStart }) {
+export default function WelcomeScreen({ onStart, onBack }) {
   const [name, setName] = useState('')
   const [error, setError] = useState(false)
 
@@ -16,7 +16,7 @@ export default function WelcomeScreen({ onStart }) {
   return (
     <div className="screen">
       <div className="card">
-        <div className="welcome-emoji" aria-hidden="true">💕</div>
+        <div className="welcome-emoji">💕</div>
         <h1 className="title">I have something important to ask you...</h1>
         <p className="subtitle">But first, what should I call you?</p>
 
@@ -39,6 +39,12 @@ export default function WelcomeScreen({ onStart }) {
             I&apos;m ready ✨
           </button>
         </form>
+
+        {onBack && (
+          <button type="button" className="btn btn-back" onClick={onBack}>
+            ← Back
+          </button>
+        )}
       </div>
     </div>
   )

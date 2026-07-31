@@ -10,7 +10,7 @@ const NO_MESSAGES = [
   'The "No" button has resigned. 😂',
 ]
 
-export default function QuestionScreen({ onYes }) {
+export default function QuestionScreen({ onYes, onBack }) {
   const [noClicks, setNoClicks] = useState(0)
   const [noStyle, setNoStyle] = useState({})
   const [noText, setNoText] = useState('❤️ No')
@@ -144,6 +144,11 @@ export default function QuestionScreen({ onYes }) {
               💚 Yes (the only choice left)
             </button>
           </div>
+        )}
+        {onBack && (
+          <button type="button" className="btn btn-back" onClick={onBack}>
+            ← Back
+          </button>
         )}
 
         <p className="no-hint">{hint || '\u00A0'}</p>

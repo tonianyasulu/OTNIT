@@ -5,7 +5,7 @@ import { useState } from 'react'
 // Example US: '15551234567'
 const WHATSAPP_NUMBER = '265894974564' // ← CHANGE THIS TO YOUR NUMBER
 
-export default function ReplyScreen({ name }) {
+export default function ReplyScreen({ name, onBack }) {
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState(false)
 
@@ -63,6 +63,11 @@ export default function ReplyScreen({ name }) {
             Send via WhatsApp 💬
           </button>
         </form>
+        {onBack && (
+          <button type="button" className="btn btn-back" onClick={onBack}>
+            ← Back
+          </button>
+        )}
       </div>
     </div>
   )

@@ -860,3 +860,205 @@ button:active {
   cursor: pointer;
   padding: 0;
 }
+.album-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+}
+
+.album-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  border-radius: 14px;
+  border: 2px solid var(--pink-light);
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.album-item:hover {
+  border-color: var(--pink);
+  transform: translateY(-2px);
+}
+
+.album-name {
+  font-weight: 600;
+  color: var(--pink-dark);
+}
+
+.album-meta {
+  font-size: 0.8rem;
+  color: #9a6a9a;
+}
+
+.love-floaters {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.love-floater {
+  position: absolute;
+  bottom: -10%;
+  opacity: 0;
+  animation: loveRise linear infinite;
+  user-select: none;
+}
+
+@keyframes loveRise {
+  0% {
+    transform: translateY(0) scale(0.5);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(-110vh) scale(1.1);
+    opacity: 0;
+  }
+}
+.album-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.album-row .album-item {
+  flex: 1;
+}
+
+.album-delete {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 2px solid #fecdd3;
+  background: #fff1f2;
+  cursor: pointer;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.album-delete:hover {
+  background: #ffe4e6;
+  border-color: #fb7185;
+}
+.btn-back {
+  margin-top: 1rem;
+  background: transparent;
+  color: #d31822;
+  border: 2px solid #e8b4f0;
+  padding: 0.65rem 1.4rem;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.btn-back:hover {
+  background: hsla(295, 67%, 60%, 0.7);
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  margin-top: 0.85rem;
+  background: linear-gradient(135deg, #f9a8d4, #c77dff);
+  color: white;
+  padding: 0.85rem 1.6rem;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px) scale(1.03);
+}
+
+.album-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.album-row .album-item {
+  flex: 1;
+}
+
+.album-delete {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 2px solid #fecdd3;
+  background: #fff1f2;
+  cursor: pointer;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.album-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+}
+
+.album-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  border-radius: 14px;
+  border: 2px solid var(--pink-light);
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+}
+
+.album-name {
+  font-weight: 600;
+  color: var(--pink-dark);
+}
+
+.album-meta {
+  font-size: 0.8rem;
+  color: #9a6a9a;
+}
+
+.love-floaters {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.love-floater {
+  position: absolute;
+  bottom: -10%;
+  opacity: 0;
+  animation: loveRise linear infinite;
+}
+
+@keyframes loveRise {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  10% { opacity: 0.85; }
+  100% { transform: translateY(-110vh) scale(1.1); opacity: 0; }
+}
