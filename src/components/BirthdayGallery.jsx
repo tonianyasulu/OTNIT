@@ -1,10 +1,23 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { collection, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  deleteDoc,
+  doc,
+  addDoc,
+  serverTimestamp,
+} from 'firebase/firestore'
 import confetti from 'canvas-confetti'
 import { db } from '../firebase'
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '../cloudinary'
 
 const SLIDE_SECONDS = 4
+const MAX_PHOTOS = 10
 const LOVE_EMOJIS = ['❤️', '💕', '💗', '💖', '💘', '✨', '🥰', '💓', '💞', '🌸']
+const COMPRESS_MAX = 1280
+const JPEG_QUALITY = 0.72
 
 function formatDob(dob) {
   if (!dob) return ''
@@ -33,7 +46,6 @@ function LoveFloaters() {
       })),
     []
   )
-
   return (
     <div className="love-floaters" aria-hidden="true">
       {items.map((h) => (
@@ -54,6 +66,80 @@ function LoveFloaters() {
   )
 }
 
+function compressImage(file) {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) {
+      resolve(file)
+      return
+    }
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let { width, height } = img
+      if (width <= COMPRESS_MAX && height <= COMPRESS_MAX && file.size < 400000) {
+        resolve(file)
+        return
+      }
+      if (width > height && width > COMPRESS_MAX) {
+        height = Math.round((height * COMPRESS_MAX) / width)
+        width = COMPRESS_MAX
+      } else if (height > COMPRESS_MAX) {
+        width = Math.round((width * COMPRESS_MAX) / height)
+        height = COMPRESS_MAX
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return resolve(file)
+          resolve(
+            new File([blob], file.name.replace(/\.\w+$/, '.jpg'), {
+              type: 'image/jpeg',
+            })
+          )
+        },
+        'image/jpeg',
+        JPEG_QUALITY
+      )
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(file)
+    }
+    img.src = url
+  })
+}
+
+function uploadOne(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
+    xhr.open(
+      'POST',
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
+    )
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total)
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText).secure_url)
+        } catch {
+          reject(new Error('Invalid response'))
+        }
+      } else reject(new Error(xhr.responseText || 'Upload failed'))
+    }
+    xhr.onerror = () => reject(new Error('Network error'))
+    xhr.send(formData)
+  })
+}
+
 export default function BirthdayGallery({ profile, onBack }) {
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -62,37 +148,44 @@ export default function BirthdayGallery({ profile, onBack }) {
   const [paused, setPaused] = useState(false)
   const [error, setError] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [showUpload, setShowUpload] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [percent, setPercent] = useState(0)
+  const [progress, setProgress] = useState('')
+  const [uploadError, setUploadError] = useState('')
+  const inputRef = useRef(null)
+  const fileProgress = useRef([])
   const isAdmin = !!profile.isAdmin
 
-  useEffect(() => {
-    const load = async () => {
-      if (!db) {
-        setError('Firestore not configured')
-        setLoading(false)
-        return
-      }
-      try {
-        const q = query(
-          collection(db, 'birthdayPhotos'),
-          where('username', '==', profile.username)
-        )
-        const snap = await getDocs(q)
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-        list.sort((a, b) => {
-          const ta = a.createdAt?.seconds || 0
-          const tb = b.createdAt?.seconds || 0
-          return ta - tb
-        })
-        setPhotos(list)
-      } catch (err) {
-        console.error(err)
-        setError('Could not load photos. Check Firestore rules.')
-      } finally {
-        setLoading(false)
-      }
+  const loadPhotos = useCallback(async () => {
+    if (!db) {
+      setError('Firestore not configured')
+      setLoading(false)
+      return
     }
-    load()
+    try {
+      const q = query(
+        collection(db, 'birthdayPhotos'),
+        where('username', '==', profile.username)
+      )
+      const snap = await getDocs(q)
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      list.sort((a, b) => {
+        const ta = a.createdAt?.seconds || 0
+        const tb = b.createdAt?.seconds || 0
+        return ta - tb
+      })
+      setPhotos(list)
+    } catch (err) {
+      console.error(err)
+      setError('Could not load photos. Check Firestore rules.')
+    } finally {
+      setLoading(false)
+    }
+  }, [profile.username])
 
+  useEffect(() => {
+    loadPhotos()
     const duration = 3500
     const end = Date.now() + duration
     const frame = () => {
@@ -119,7 +212,7 @@ export default function BirthdayGallery({ profile, onBack }) {
       origin: { y: 0.55 },
       colors: ['#ff6b9d', '#c77dff', '#ffd700', '#4ade80', '#fb7185'],
     })
-  }, [profile.username])
+  }, [loadPhotos])
 
   const goTo = useCallback(
     (next) => {
@@ -134,16 +227,15 @@ export default function BirthdayGallery({ profile, onBack }) {
   )
 
   useEffect(() => {
-    if (paused || photos.length < 2) return
+    if (paused || photos.length < 2 || showUpload) return
     const timer = setInterval(() => goTo(index + 1), SLIDE_SECONDS * 1000)
     return () => clearInterval(timer)
-  }, [index, paused, photos.length, goTo])
+  }, [index, paused, photos.length, goTo, showUpload])
 
   const deleteCurrentPhoto = async () => {
     if (!photos.length || !isAdmin) return
     const photo = photos[index]
     if (!window.confirm('Delete this photo?')) return
-
     setDeleting(true)
     try {
       await deleteDoc(doc(db, 'birthdayPhotos', photo.id))
@@ -157,6 +249,85 @@ export default function BirthdayGallery({ profile, onBack }) {
     } finally {
       setDeleting(false)
     }
+  }
+
+  const remaining = Math.max(0, MAX_PHOTOS - photos.length)
+
+  const updateOverall = (total) => {
+    const avg =
+      fileProgress.current.reduce((a, b) => a + b, 0) / Math.max(total, 1)
+    setPercent(Math.min(100, Math.round(avg * 100)))
+  }
+
+  const handleAddFiles = async (e) => {
+    const selected = Array.from(e.target.files || []).filter((f) =>
+      f.type.startsWith('image/')
+    )
+    if (!selected.length) return
+
+    const allowed = selected.slice(0, remaining)
+    if (!allowed.length) {
+      setUploadError(`Maximum ${MAX_PHOTOS} photos allowed`)
+      return
+    }
+
+    if (!CLOUDINARY_CLOUD_NAME || CLOUDINARY_CLOUD_NAME === 'YOUR_CLOUD_NAME') {
+      setUploadError('Cloudinary not configured')
+      return
+    }
+    if (!db) {
+      setUploadError('Firestore not configured')
+      return
+    }
+
+    setUploading(true)
+    setUploadError('')
+    setPercent(0)
+    setProgress(`Preparing ${allowed.length}...`)
+
+    try {
+      const compressed = await Promise.all(allowed.map((f) => compressImage(f)))
+      const total = compressed.length
+      fileProgress.current = new Array(total).fill(0)
+      let finished = 0
+      setProgress(`Uploading 0 / ${total}...`)
+
+      for (let i = 0; i < compressed.length; i++) {
+        const url = await uploadOne(compressed[i], (p) => {
+          fileProgress.current[i] = p * 0.9
+          updateOverall(total)
+        })
+        await addDoc(collection(db, 'birthdayPhotos'), {
+          url,
+          name: compressed[i].name,
+          username: profile.username,
+          displayName: profile.displayName,
+          dob: profile.dob || '',
+          createdAt: serverTimestamp(),
+        })
+        fileProgress.current[i] = 1
+        finished += 1
+        updateOverall(total)
+        setProgress(`Uploading ${finished} / ${total}...`)
+      }
+
+      setPercent(100)
+      setProgress('Done!')
+      await loadPhotos()
+      setTimeout(() => {
+        setShowUpload(false)
+        setUploading(false)
+        setProgress('')
+        setPercent(0)
+      }, 400)
+    } catch (err) {
+      console.error(err)
+      setUploadError('Upload failed')
+      setUploading(false)
+      setProgress('')
+      setPercent(0)
+    }
+    if (inputRef.current) inputRef.current.value = ''
   }
 
   if (loading) {
@@ -198,6 +369,44 @@ export default function BirthdayGallery({ profile, onBack }) {
           <h1 className="title">Happy Birthday, {profile.displayName}!</h1>
           {profile.dob && <p className="subtitle">{formatDob(profile.dob)}</p>}
           <p className="subtitle">No photos in this album yet.</p>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setShowUpload(true)}
+          >
+            📸 Add photos
+          </button>
+          {showUpload && (
+            <div style={{ marginTop: '1rem', width: '100%' }}>
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={handleAddFiles}
+              />
+              <button
+                type="button"
+                className="btn btn-yes"
+                disabled={uploading}
+                onClick={() => inputRef.current?.click()}
+              >
+                Choose photos (max {MAX_PHOTOS})
+              </button>
+              {uploading && (
+                <div className="upload-progress-wrap">
+                  <div className="upload-progress-track">
+                    <div className="upload-progress-fill" style={{ width: `${percent}%` }} />
+                  </div>
+                  <p className="upload-progress-label">
+                    {percent}% · {progress}
+                  </p>
+                </div>
+              )}
+              {uploadError && <p className="name-error">{uploadError}</p>}
+            </div>
+          )}
           {onBack && (
             <button type="button" className="btn btn-back" onClick={onBack}>
               ← Back
@@ -220,7 +429,7 @@ export default function BirthdayGallery({ profile, onBack }) {
         </p>
       )}
       <p className="gallery-subtitle">
-        {photos.length} photo{photos.length > 1 ? 's' : ''} · just for you
+        {photos.length}/{MAX_PHOTOS} photos · just for you
         {isAdmin ? ' · admin' : ''}
       </p>
 
@@ -285,6 +494,70 @@ export default function BirthdayGallery({ profile, onBack }) {
         >
           {deleting ? 'Deleting...' : '🗑️ Delete this photo'}
         </button>
+      )}
+
+      {remaining > 0 && !showUpload && (
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ marginTop: '0.85rem' }}
+          onClick={() => setShowUpload(true)}
+        >
+          📸 Add more photos ({remaining} left)
+        </button>
+      )}
+
+      {remaining === 0 && (
+        <p className="subtitle" style={{ marginTop: '0.75rem' }}>
+          Album full ({MAX_PHOTOS} photos max)
+        </p>
+      )}
+
+      {showUpload && remaining > 0 && (
+        <div className="card reply-card" style={{ marginTop: '1rem', maxWidth: 400 }}>
+          <p className="subtitle" style={{ marginBottom: '0.75rem' }}>
+            You can add up to {remaining} more photo{remaining !== 1 ? 's' : ''}.
+          </p>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={handleAddFiles}
+          />
+          <button
+            type="button"
+            className="btn btn-yes"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            Choose photos
+          </button>
+          {uploading && (
+            <div className="upload-progress-wrap">
+              <div className="upload-progress-track">
+                <div className="upload-progress-fill" style={{ width: `${percent}%` }} />
+              </div>
+              <p className="upload-progress-label">
+                {percent}% · {progress}
+              </p>
+            </div>
+          )}
+          {uploadError && <p className="name-error">{uploadError}</p>}
+          {!uploading && (
+            <button
+              type="button"
+              className="btn btn-back"
+              onClick={() => {
+                setShowUpload(false)
+                setUploadError('')
+              }}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       )}
 
       {onBack && (

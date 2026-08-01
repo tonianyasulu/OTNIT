@@ -1,8 +1,16 @@
-import { useState, useRef } from 'react'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { useState, useRef, useEffect } from 'react'
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  serverTimestamp,
+} from 'firebase/firestore'
 import { db } from '../firebase'
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '../cloudinary'
 
+const MAX_PHOTOS = 10
 const MAX_SIZE = 1280
 const JPEG_QUALITY = 0.72
 
@@ -31,14 +39,10 @@ function compressImage(file) {
       const canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = height
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, width, height)
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
       canvas.toBlob(
         (blob) => {
-          if (!blob) {
-            resolve(file)
-            return
-          }
+          if (!blob) return resolve(file)
           resolve(
             new File([blob], file.name.replace(/\.\w+$/, '.jpg'), {
               type: 'image/jpeg',
@@ -63,47 +67,25 @@ function uploadOne(file, onProgress) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
-
     xhr.open(
       'POST',
       `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
     )
-
     xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) {
-        onProgress(e.loaded / e.total)
-      }
+      if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total)
     }
-
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
-          const data = JSON.parse(xhr.responseText)
-          resolve(data.secure_url)
+          resolve(JSON.parse(xhr.responseText).secure_url)
         } catch {
           reject(new Error('Invalid response'))
         }
-      } else {
-        reject(new Error(xhr.responseText || 'Upload failed'))
-      }
+      } else reject(new Error(xhr.responseText || 'Upload failed'))
     }
-
     xhr.onerror = () => reject(new Error('Network error'))
     xhr.send(formData)
   })
-}
-
-async function mapPool(items, limit, worker) {
-  const results = new Array(items.length)
-  let i = 0
-  async function run() {
-    while (i < items.length) {
-      const idx = i++
-      results[idx] = await worker(items[idx], idx)
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, run))
-  return results
 }
 
 export default function BirthdayUpload({ profile, onDone, onBack }) {
@@ -113,14 +95,28 @@ export default function BirthdayUpload({ profile, onDone, onBack }) {
   const [progress, setProgress] = useState('')
   const [percent, setPercent] = useState(0)
   const [error, setError] = useState('')
+  const [existingCount, setExistingCount] = useState(0)
   const inputRef = useRef(null)
   const fileProgress = useRef([])
 
-  const updateOverallProgress = (total) => {
-    const avg =
-      fileProgress.current.reduce((a, b) => a + b, 0) / Math.max(total, 1)
-    setPercent(Math.min(100, Math.round(avg * 100)))
-  }
+  useEffect(() => {
+    const load = async () => {
+      if (!db || !profile?.username) return
+      try {
+        const q = query(
+          collection(db, 'birthdayPhotos'),
+          where('username', '==', profile.username)
+        )
+        const snap = await getDocs(q)
+        setExistingCount(snap.size)
+      } catch (err) {
+        console.error(err)
+      }
+    }
+    load()
+  }, [profile?.username])
+
+  const slotsLeft = Math.max(0, MAX_PHOTOS - existingCount)
 
   const handleSelect = (e) => {
     const selected = Array.from(e.target.files || [])
@@ -131,9 +127,9 @@ export default function BirthdayUpload({ profile, onDone, onBack }) {
       return
     }
     setError('')
-    setFiles((prev) => [...prev, ...images].slice(0, 12))
+    setFiles((prev) => [...prev, ...images].slice(0, slotsLeft))
     const newPreviews = images.map((f) => URL.createObjectURL(f))
-    setPreviews((prev) => [...prev, ...newPreviews].slice(0, 12))
+    setPreviews((prev) => [...prev, ...newPreviews].slice(0, slotsLeft))
   }
 
   const removeAt = (i) => {
@@ -142,6 +138,12 @@ export default function BirthdayUpload({ profile, onDone, onBack }) {
       URL.revokeObjectURL(prev[i])
       return prev.filter((_, idx) => idx !== i)
     })
+  }
+
+  const updateOverall = (total) => {
+    const avg =
+      fileProgress.current.reduce((a, b) => a + b, 0) / Math.max(total, 1)
+    setPercent(Math.min(100, Math.round(avg * 100)))
   }
 
   const handleUpload = async () => {
@@ -167,28 +169,27 @@ export default function BirthdayUpload({ profile, onDone, onBack }) {
       const compressed = await Promise.all(files.map((f) => compressImage(f)))
       const total = compressed.length
       fileProgress.current = new Array(total).fill(0)
+      let finished = 0
       setProgress(`Uploading 0 / ${total}...`)
 
-      let finished = 0
-
-      await mapPool(compressed, 3, async (file, idx) => {
-        const url = await uploadOne(file, (p) => {
-          fileProgress.current[idx] = p * 0.9 // 90% = upload, 10% = save
-          updateOverallProgress(total)
+      for (let i = 0; i < compressed.length; i++) {
+        const url = await uploadOne(compressed[i], (p) => {
+          fileProgress.current[i] = p * 0.9
+          updateOverall(total)
         })
         await addDoc(collection(db, 'birthdayPhotos'), {
           url,
-          name: file.name,
+          name: compressed[i].name,
           username: profile.username,
           displayName: profile.displayName,
           dob: profile.dob || '',
           createdAt: serverTimestamp(),
         })
-        fileProgress.current[idx] = 1
+        fileProgress.current[i] = 1
         finished += 1
-        updateOverallProgress(total)
+        updateOverall(total)
         setProgress(`Uploading ${finished} / ${total}...`)
-      })
+      }
 
       setPercent(100)
       setProgress('Done!')
@@ -208,10 +209,12 @@ export default function BirthdayUpload({ profile, onDone, onBack }) {
         <div className="welcome-emoji">📸</div>
         <h1 className="title">Add photos for {profile.displayName}</h1>
         <p className="subtitle">
-          These will only be stored in {profile.displayName}&apos;s album.
+          These will only show in {profile.displayName}&apos;s album.
           <br />
           <span style={{ fontSize: '0.85rem', opacity: 0.85 }}>
-            fast photo upload
+            {existingCount > 0
+              ? `${existingCount} already saved · ${slotsLeft} slot${slotsLeft !== 1 ? 's' : ''} left (max ${MAX_PHOTOS})`
+              : `Up to ${MAX_PHOTOS} photos · compressed for faster upload`}
           </span>
         </p>
 
@@ -224,14 +227,18 @@ export default function BirthdayUpload({ profile, onDone, onBack }) {
           onChange={handleSelect}
         />
 
-        <button
-          type="button"
-          className="btn btn-yes"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-        >
-          Choose photos
-        </button>
+        {slotsLeft > 0 ? (
+          <button
+            type="button"
+            className="btn btn-yes"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+          >
+            Choose photos
+          </button>
+        ) : (
+          <p className="subtitle">Album is full ({MAX_PHOTOS} photos)</p>
+        )}
 
         {previews.length > 0 && (
           <div className="upload-grid">
@@ -251,10 +258,7 @@ export default function BirthdayUpload({ profile, onDone, onBack }) {
         {uploading && (
           <div className="upload-progress-wrap">
             <div className="upload-progress-track">
-              <div
-                className="upload-progress-fill"
-                style={{ width: `${percent}%` }}
-              />
+              <div className="upload-progress-fill" style={{ width: `${percent}%` }} />
             </div>
             <p className="upload-progress-label">
               {percent}% · {progress}
