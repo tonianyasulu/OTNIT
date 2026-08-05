@@ -16,6 +16,7 @@ import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '../cloudinary'
 const SLIDE_SECONDS = 4
 const MAX_PHOTOS = 10
 const LOVE_EMOJIS = ['❤️', '💕', '💗', '💖', '💘', '✨', '🥰', '💓', '💞', '🌸']
+const FLOWER_EMOJIS = ['🌸','BIRTHDAY', '🌺', '🌻', '🌹', '🌷', '💐','HAPPY', '🌼', '💮','TO', '🏵️', '🪷','YOU']
 const COMPRESS_MAX = 1280
 const JPEG_QUALITY = 0.72
 
@@ -140,6 +141,83 @@ function uploadOne(file, onProgress) {
   })
 }
 
+function bloomFlowers() {
+  const defaults = {
+    spread: 360,
+    ticks: 80,
+    gravity: 0.65,
+    decay: 0.92,
+    startVelocity: 35,
+    scalar: 1.35,
+  }
+
+  confetti({
+    ...defaults,
+    particleCount: 60,
+    origin: { x: 0.5, y: 0.45 },
+    shapes: ['circle'],
+    colors: ['#ff6b9d', '#f9a8d4', '#c77dff', '#fbbf24', '#fb7185', '#ffffff'],
+  })
+
+  const flowerBurst = (angle) => {
+    confetti({
+      ...defaults,
+      particleCount: 18,
+      angle,
+      spread: 70,
+      origin: { x: 0.5, y: 0.48 },
+      scalar: 1.6,
+      shapes: ['circle'],
+      colors: ['#ff6b9d', '#f472b6', '#e879f9', '#fbbf24', '#fda4af'],
+    })
+  }
+
+  flowerBurst(45)
+  flowerBurst(135)
+  flowerBurst(225)
+  flowerBurst(315)
+
+  confetti({
+    particleCount: 40,
+    angle: 60,
+    spread: 55,
+    origin: { x: 0, y: 0.55 },
+    startVelocity: 45,
+    colors: ['#ff6b9d', '#c77dff', '#fbbf24', '#fb7185', '#ffffff'],
+    scalar: 1.2,
+  })
+  confetti({
+    particleCount: 40,
+    angle: 120,
+    spread: 55,
+    origin: { x: 1, y: 0.55 },
+    startVelocity: 45,
+    colors: ['#ff6b9d', '#c77dff', '#fbbf24', '#fb7185', '#ffffff'],
+    scalar: 1.2,
+  })
+
+  const layer = document.createElement('div')
+  layer.className = 'flower-boom-layer'
+  document.body.appendChild(layer)
+
+  for (let i = 0; i < 28; i++) {
+    const el = document.createElement('span')
+    el.className = 'flower-boom-petal'
+    el.textContent = FLOWER_EMOJIS[i % FLOWER_EMOJIS.length]
+    const x = 15 + Math.random() * 70
+    const delay = Math.random() * 0.25
+    const size = 1.4 + Math.random() * 1.8
+    el.style.left = `${x}%`
+    el.style.fontSize = `${size}rem`
+    el.style.animationDelay = `${delay}s`
+    layer.appendChild(el)
+  }
+
+  setTimeout(() => {
+    layer.remove()
+  }, 2200)
+}
+
 export default function BirthdayGallery({ profile, onBack }) {
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -153,6 +231,7 @@ export default function BirthdayGallery({ profile, onBack }) {
   const [percent, setPercent] = useState(0)
   const [progress, setProgress] = useState('')
   const [uploadError, setUploadError] = useState('')
+  const [blooming, setBlooming] = useState(false)
   const inputRef = useRef(null)
   const fileProgress = useRef([])
   const isAdmin = !!profile.isAdmin
@@ -232,6 +311,13 @@ export default function BirthdayGallery({ profile, onBack }) {
     return () => clearInterval(timer)
   }, [index, paused, photos.length, goTo, showUpload])
 
+  const handleBloom = () => {
+    if (blooming) return
+    setBlooming(true)
+    bloomFlowers()
+    setTimeout(() => setBlooming(false), 2000)
+  }
+
   const deleteCurrentPhoto = async () => {
     if (!photos.length || !isAdmin) return
     const photo = photos[index]
@@ -264,13 +350,11 @@ export default function BirthdayGallery({ profile, onBack }) {
       f.type.startsWith('image/')
     )
     if (!selected.length) return
-
     const allowed = selected.slice(0, remaining)
     if (!allowed.length) {
       setUploadError(`Maximum ${MAX_PHOTOS} photos allowed`)
       return
     }
-
     if (!CLOUDINARY_CLOUD_NAME || CLOUDINARY_CLOUD_NAME === 'YOUR_CLOUD_NAME') {
       setUploadError('Cloudinary not configured')
       return
@@ -477,6 +561,15 @@ export default function BirthdayGallery({ profile, onBack }) {
         </button>
       </div>
 
+      <button
+        type="button"
+        className={`btn btn-bloom ${blooming ? 'btn-bloom-active' : ''}`}
+        onClick={handleBloom}
+        disabled={blooming}
+      >
+        {blooming ? '🌸 Blooming...' : '🌸 Bloom flowers'}
+      </button>
+
       {isAdmin && (
         <button
           type="button"
@@ -484,7 +577,7 @@ export default function BirthdayGallery({ profile, onBack }) {
           onClick={deleteCurrentPhoto}
           disabled={deleting}
           style={{
-            marginTop: '1rem',
+            marginTop: '0.75rem',
             background: 'linear-gradient(135deg, #fb7185, #e11d48)',
             color: 'white',
             padding: '0.7rem 1.5rem',
