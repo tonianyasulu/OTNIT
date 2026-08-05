@@ -131,6 +131,12 @@ function App() {
     setGalleryFromAlbums(false)
     setScreen(SCREENS.BDAY_WELCOME)
   }
+  const handleOpenAlbum = (profile) => {
+    setBdayProfile(profile)
+    setGalleryFromAlbums(false)
+    fireConfetti()
+    setScreen(SCREENS.BDAY_GALLERY)
+  }
   const handleBdayContinue = () => setScreen(SCREENS.BDAY_UPLOAD)
   const handleBdayUploadDone = () => {
     fireConfetti()
@@ -170,6 +176,7 @@ function App() {
       {screen === SCREENS.BDAY_PROFILE && (
         <BirthdayProfile
           onContinue={handleBdayProfile}
+          onOpenAlbum={handleOpenAlbum}
           onViewAlbums={handleViewAlbums}
           onBack={() => setScreen(SCREENS.CODE)}
         />
@@ -192,7 +199,9 @@ function App() {
         <BirthdayGallery
           profile={bdayProfile}
           onBack={() =>
-            setScreen(galleryFromAlbums ? SCREENS.BDAY_ALBUMS : SCREENS.BDAY_UPLOAD)
+            setScreen(
+              galleryFromAlbums ? SCREENS.BDAY_ALBUMS : SCREENS.BDAY_PROFILE
+            )
           }
         />
       )}
