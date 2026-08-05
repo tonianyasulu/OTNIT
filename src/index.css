@@ -1128,7 +1128,7 @@ button:active {
   bottom: 40%;
   left: 50%;
   opacity: 0;
-  animation: flowerBoom 1.8s ease-out forwards;
+  animation: flowerBoom 3.5s ease-out forwards;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
 }
 

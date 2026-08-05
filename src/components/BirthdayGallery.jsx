@@ -144,10 +144,10 @@ function uploadOne(file, onProgress) {
 function bloomFlowers() {
   const defaults = {
     spread: 360,
-    ticks: 80,
-    gravity: 0.65,
-    decay: 0.92,
-    startVelocity: 35,
+    ticks: 140,
+    gravity: 0.35,
+    decay: 0.94,
+    startVelocity: 22,
     scalar: 1.35,
   }
 
@@ -215,7 +215,7 @@ function bloomFlowers() {
 
   setTimeout(() => {
     layer.remove()
-  }, 2200)
+  }, 4000)
 }
 
 export default function BirthdayGallery({ profile, onBack }) {
@@ -315,7 +315,7 @@ export default function BirthdayGallery({ profile, onBack }) {
     if (blooming) return
     setBlooming(true)
     bloomFlowers()
-    setTimeout(() => setBlooming(false), 2000)
+    setTimeout(() => setBlooming(false), 4000)
   }
 
   const deleteCurrentPhoto = async () => {
